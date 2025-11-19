@@ -17,6 +17,10 @@
             key="chat"
             @switch-to-sessions="switchToPage('sessions')"
           />
+          <SettingsPage
+            v-else-if="currentPage === 'settings'"
+            key="settings"
+          />
           <!-- IconTestPage -->
           <!-- <IconTestPage
             v-else-if="currentPage === 'icontest'"
@@ -33,20 +37,34 @@ import { ref, onMounted, provide } from 'vue';
 import { Motion } from 'motion-v';
 import SessionsPage from './pages/SessionsPage.vue';
 import ChatPage from './pages/ChatPage.vue';
+import SettingsPage from './pages/SettingsPage.vue';
 import './styles/claude-theme.css';
 import { useRuntime } from './composables/useRuntime';
 import { RuntimeKey } from './composables/runtimeContext';
 // import IconTestPage from './pages/IconTestPage.vue';
 
-const currentPage = ref<'sessions' | 'chat'>('chat');
+type PageName = 'sessions' | 'chat' | 'settings';
+
+const bootstrap = window.CLAUDIX_BOOTSTRAP;
+const initialPage = (bootstrap?.page as PageName | undefined) ?? 'chat';
+const currentPage = ref<PageName>(initialPage);
 const pageAnimation = ref({ opacity: 1, x: 0 });
 
-// 初始化运行时（通信与状态逻辑）
-const runtime = useRuntime();
+// 仅在需要的页面上初始化运行时（聊天 / 会话列表）
+const needsRuntime = initialPage === 'chat' || initialPage === 'sessions';
+const runtime = needsRuntime ? useRuntime() : null;
+
+if (runtime) {
+  provide(RuntimeKey, runtime);
+}
+
 onMounted(() => {
-  console.log('[App] runtime initialized', runtime);
+  if (runtime) {
+    console.log('[App] runtime initialized', runtime);
+  } else {
+    console.log('[App] runtime not initialized for page', initialPage);
+  }
 });
-provide(RuntimeKey, runtime);
 
 function switchToPage(page: 'sessions' | 'chat') {
   pageAnimation.value = { opacity: 0, x: 0 };

@@ -12,6 +12,10 @@ declare global {
       getState(): any;
       setState(data: any): void;
     };
+    CLAUDIX_BOOTSTRAP?: {
+      host?: 'sidebar' | 'editor';
+      page?: string;
+    };
   }
 }
 

@@ -73,6 +73,10 @@
       {
         "command": "claudix.showChat",
         "title": "Show Claudix"
+      },
+      {
+        "command": "claudix.openSettings",
+        "title": "Claudix: Open Settings"
       }
     ]
   },

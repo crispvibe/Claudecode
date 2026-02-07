@@ -847,6 +847,13 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 const configReq = request as any;
                 try {
                     await this.llmProviderService.updateProviderConfig(configReq.config);
+                    // 持久化追加规则（独立于 Provider 配置）
+                    if (configReq.config.appendRule !== undefined) {
+                        await this.configService.updateValue('claudix.appendRule', configReq.config.appendRule);
+                    }
+                    if (configReq.config.appendRuleEnabled !== undefined) {
+                        await this.configService.updateValue('claudix.appendRuleEnabled', configReq.config.appendRuleEnabled);
+                    }
                     return {
                         type: "update_provider_config_response",
                         success: true,
@@ -874,6 +881,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     currentModel: status.currentModel,
                     customModels: status.customModels,
                     extraHeaders: status.extraHeaders,
+                    appendRule: this.configService.getValue<string>('claudix.appendRule', ''),
+                    appendRuleEnabled: this.configService.getValue<boolean>('claudix.appendRuleEnabled', true),
                     models: models.map(m => ({
                         value: m.id,
                         label: m.label,

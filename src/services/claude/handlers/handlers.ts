@@ -140,6 +140,11 @@ export async function handleGetClaudeState(
     config.providerStatus = llmProviderService?.getStatus() || null;
     config.allModels = llmProviderService?.getAllModels() || {};
 
+    // 注入追加规则配置
+    const { configService } = context;
+    config.appendRule = configService.getValue<string>('claudix.appendRule', '') || '';
+    config.appendRuleEnabled = configService.getValue<boolean>('claudix.appendRuleEnabled', true) ?? true;
+
     return {
         type: "get_claude_state_response",
         config

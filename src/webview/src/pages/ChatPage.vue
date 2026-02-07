@@ -55,6 +55,21 @@
         </div>
 
         <div class="inputContainer">
+          <!-- 消息队列（输入框上方） -->
+          <div v-if="messageQueue.length > 0" class="message-queue">
+            <div class="queue-header">
+              <span class="queue-label">队列消息 ({{ messageQueue.length }})</span>
+              <button class="queue-clear-btn" @click="messageQueue = []" title="清空队列">
+                <span class="codicon codicon-trash"></span>
+              </button>
+            </div>
+            <div v-for="(msg, idx) in messageQueue" :key="idx" class="queue-item">
+              <span class="queue-text">{{ msg.length > 60 ? msg.slice(0, 60) + '...' : msg }}</span>
+              <button class="queue-remove-btn" @click="messageQueue.splice(idx, 1)" title="移除">
+                <span class="codicon codicon-close"></span>
+              </button>
+            </div>
+          </div>
           <PermissionRequestModal
             v-if="pendingPermission && toolContext"
             :request="pendingPermission"
@@ -77,6 +92,7 @@
             @thinking-toggle="handleToggleThinking"
             @mode-select="handleModeSelect"
             @model-select="handleModelSelect"
+            @queue-message="handleQueueMessage"
           />
         </div>
       <!-- </div> -->
@@ -170,6 +186,9 @@
 
   // 附件状态管理
   const attachments = ref<AttachmentItem[]>([]);
+
+  // 消息队列：对话工作中时排队，完成后自动发送
+  const messageQueue = ref<string[]>([]);
 
   // 记录上次消息数量，用于判断是否需要滚动
   let prevCount = 0;
@@ -291,6 +310,22 @@
       console.error('[ChatPage] send failed', e);
     }
   }
+
+  function handleQueueMessage(content: string) {
+    const trimmed = (content || '').trim();
+    if (trimmed) {
+      messageQueue.value.push(trimmed);
+    }
+  }
+
+  // 监听 isBusy 变化，对话完成后自动发送队列中的下一条消息
+  watch(isBusy, async (busy, wasBusy) => {
+    if (wasBusy && !busy && messageQueue.value.length > 0) {
+      const nextMsg = messageQueue.value.shift()!;
+      await nextTick();
+      await handleSubmit(nextMsg);
+    }
+  });
 
   async function handleToggleThinking() {
     const s = session.value;
@@ -573,5 +608,80 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
+  }
+
+  /* 消息队列样式 */
+  .message-queue {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    background: color-mix(in srgb, var(--vscode-input-background) 80%, transparent);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .queue-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    font-weight: 500;
+  }
+
+  .queue-clear-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    padding: 2px;
+    opacity: 0.6;
+  }
+
+  .queue-clear-btn:hover {
+    opacity: 1;
+  }
+
+  .queue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+    margin-bottom: 2px;
+  }
+
+  .queue-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .queue-text {
+    color: var(--vscode-foreground);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .queue-remove-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    padding: 1px 3px;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .queue-remove-btn:hover {
+    opacity: 1;
+    color: var(--vscode-errorForeground);
   }
 </style>

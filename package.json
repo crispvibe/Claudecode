@@ -146,6 +146,16 @@
           "default": {},
           "description": "Gemini 额外请求头"
         },
+        "claudix.appendRule": {
+          "type": "string",
+          "default": "不要猜测，必须找出问题。调用快速上下文\n多个场景分析完整遍历分析所有项目文件\n完整分析相关数据库和字段并找出问题。\n做个任务计划，使用最优方案彻底解决问题\n修改完成之后继续做多个场景和流程的逻辑分析找出问题\n回答问题需要简洁必须使用中文思考回答\n1. Read the relevant files first before making any changes\n2. Only modify what is necessary, do not refactor other parts\n3. Keep the existing code style and naming conventions\n4. Do not delete existing functions or comments\n5. Ask before modifying if unsure\n6. Verify the code after changes to ensure no syntax errors\n7. Think step by step: analyze the problem -> propose solution -> implement -> verify",
+          "description": "追加规则：每次发送消息时自动追加到内容末尾"
+        },
+        "claudix.appendRuleEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否启用追加规则"
+        },
         "claudix.environmentVariables": {
           "type": "array",
           "items": {

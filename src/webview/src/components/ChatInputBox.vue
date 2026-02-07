@@ -595,8 +595,24 @@ async function statPaths(
   return result
 }
 
+function isImageDrop(event: DragEvent): boolean {
+  const dataTransfer = event.dataTransfer
+  if (!dataTransfer) return false
+  if (!dataTransfer.types.includes('Files')) return false
+  // 检查是否有图片文件
+  for (const item of Array.from(dataTransfer.items || [])) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) return true
+  }
+  return false
+}
+
 function handleDragOver(event: DragEvent) {
-  // 仅在按住 Shift 且为文件/URI 拖拽时拦截，避免干扰普通文本拖拽
+  // 图片拖拽：不需要 Shift
+  if (isImageDrop(event)) {
+    event.preventDefault()
+    return
+  }
+  // 文件路径拖拽：仅在按住 Shift 时拦截
   if (!event.shiftKey) return
   if (!isFileDrop(event)) return
 
@@ -607,7 +623,25 @@ async function handleDrop(event: DragEvent) {
   const dataTransfer = event.dataTransfer
   if (!dataTransfer) return
 
-  // 按住 Shift 时，将资源管理器文件拖入视为“插入路径”
+  // 图片拖拽（不需要 Shift）：作为附件添加
+  if (!event.shiftKey && isImageDrop(event)) {
+    event.preventDefault()
+    const imageFiles: File[] = []
+    for (const item of Array.from(dataTransfer.items || [])) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) imageFiles.push(file)
+      }
+    }
+    if (imageFiles.length > 0) {
+      const dt = new DataTransfer()
+      for (const f of imageFiles) dt.items.add(f)
+      handleAddFiles(dt.files)
+    }
+    return
+  }
+
+  // 按住 Shift 时，将资源管理器文件拖入视为"插入路径"
   if (!event.shiftKey) return
   if (!isFileDrop(event)) return
 

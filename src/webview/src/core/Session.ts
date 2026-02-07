@@ -207,6 +207,15 @@ export class Session {
     // 启动 channel（确保已带上当前 thinkingLevel）
     await this.launchClaude();
 
+    // 追加规则：如果启用且有内容，自动追加到用户输入末尾
+    let finalInput = input;
+    if (!isSlash) {
+      const config = this.claudeConfig();
+      if (config?.appendRuleEnabled && config?.appendRule) {
+        finalInput = input + '\n\n' + config.appendRule;
+      }
+    }
+
     const shouldIncludeSelection = includeSelection && !isSlash;
     let selectionPayload: SelectionRange | undefined;
 
@@ -215,7 +224,7 @@ export class Session {
       this.lastSentSelection = selectionPayload;
     }
 
-    const userMessage = this.buildUserMessage(input, attachments, selectionPayload);
+    const userMessage = this.buildUserMessage(finalInput, attachments, selectionPayload);
     const messageModel = MessageModel.fromRaw(userMessage);
 
     if (messageModel) {

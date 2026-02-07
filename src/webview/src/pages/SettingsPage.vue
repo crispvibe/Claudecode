@@ -110,6 +110,27 @@
         </div>
       </section>
 
+      <!-- 追加规则 -->
+      <section class="settings-section">
+        <h3 class="section-title">追加规则</h3>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="appendRuleEnabled" @change="saveConfig" />
+            <span>启用追加规则</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <textarea
+            class="form-textarea"
+            v-model="appendRule"
+            placeholder="每次发送消息时自动追加到内容末尾..."
+            rows="6"
+            @change="saveConfig"
+          ></textarea>
+          <span class="form-hint">规则会在每次发送消息时自动追加，用于引导 AI 按照你的习惯回答</span>
+        </div>
+      </section>
+
       <!-- 保存按钮 + 状态 -->
       <section class="settings-section save-section">
         <button class="save-btn" @click="saveConfig" :disabled="saveStatus === 'saving'">
@@ -152,6 +173,8 @@ const apiKeyMasked = ref('')
 const baseUrl = ref('')
 const customModels = ref<Array<{ id: string; label: string; description?: string }>>([])
 const extraHeadersText = ref('')
+const appendRule = ref('')
+const appendRuleEnabled = ref(true)
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 const defaultBaseUrls: Record<string, string> = {
@@ -189,6 +212,14 @@ async function loadProviderStatus() {
         extraHeadersText.value = JSON.stringify(response.extraHeaders, null, 2)
       } else {
         extraHeadersText.value = ''
+      }
+
+      // 回显追加规则
+      if (response.appendRule !== undefined) {
+        appendRule.value = response.appendRule || ''
+      }
+      if (response.appendRuleEnabled !== undefined) {
+        appendRuleEnabled.value = response.appendRuleEnabled ?? true
       }
     }
   } catch (e) {
@@ -244,6 +275,8 @@ async function saveConfig() {
     if (baseUrl.value) config.baseUrl = baseUrl.value
     if (customModels.value.length > 0) config.customModels = customModels.value
     if (Object.keys(extraHeaders).length > 0) config.extraHeaders = extraHeaders
+    config.appendRule = appendRule.value
+    config.appendRuleEnabled = appendRuleEnabled.value
 
     await conn.request({
       type: 'update_provider_config',
@@ -440,6 +473,20 @@ onMounted(() => {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);
   margin-top: 3px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--vscode-foreground);
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--vscode-button-background);
+  cursor: pointer;
 }
 
 .empty-hint {

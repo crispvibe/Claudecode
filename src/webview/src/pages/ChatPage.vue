@@ -318,12 +318,25 @@
     }
   }
 
+  // 从队列发送下一条消息（绕过 isBusy 检查，因为 watcher 已确认 busy=false）
+  async function sendNextQueueMessage() {
+    if (messageQueue.value.length === 0) return;
+    const s = session.value;
+    if (!s) return;
+
+    const nextMsg = messageQueue.value.shift()!;
+    try {
+      await s.send(nextMsg);
+    } catch (e) {
+      console.error('[ChatPage] queue send failed', e);
+    }
+  }
+
   // 监听 isBusy 变化，对话完成后自动发送队列中的下一条消息
   watch(isBusy, async (busy, wasBusy) => {
     if (wasBusy && !busy && messageQueue.value.length > 0) {
-      const nextMsg = messageQueue.value.shift()!;
       await nextTick();
-      await handleSubmit(nextMsg);
+      await sendNextQueueMessage();
     }
   });
 

@@ -559,9 +559,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
         initialPermissionMode: string = 'default'
     ): Promise<Query> {
         const providerConfig = this.llmProviderService.getProviderConfig();
-        const resolvedModel = model || providerConfig.defaultModel || '';
+        let currentModel = model || providerConfig.defaultModel || '';
 
-        if (!resolvedModel) {
+        if (!currentModel) {
             throw new Error('未指定模型，请在设置中配置默认模型');
         }
 
@@ -570,6 +570,39 @@ export class ClaudeAgentService implements IClaudeAgentService {
         let currentHandle: LLMQueryHandle | null = null;
         let interrupted = false;
         let currentPermissionMode = initialPermissionMode;
+
+        // 构建系统提示词（包含工作区上下文、追加规则、权限模式）
+        function buildSystemPrompt(): string {
+            const parts: string[] = [];
+
+            // 工作区上下文
+            parts.push(
+                `You are an AI coding assistant working in a VSCode extension.`,
+                `The user's workspace is at: ${cwd}`,
+                `You have access to the user's project. When the user asks about their code, provide analysis and suggestions based on the workspace context.`,
+                `Always reference file paths relative to the workspace root.`,
+                `\n你是一个 VSCode 扩展中的 AI 编程助手。`,
+                `用户的工作区路径是: ${cwd}`,
+                `请基于工作区上下文分析和建议。文件路径使用相对于工作区根目录的路径。`
+            );
+
+            // 权限模式
+            if (currentPermissionMode === 'plan') {
+                parts.push(
+                    `\n[PLAN MODE] You must ONLY analyze, plan, and suggest. Do NOT write actual code, do NOT create files, do NOT execute commands. Only provide analysis, step-by-step plans, architecture suggestions, and explanations.`,
+                    `\n[规划模式] 你只能分析、规划和建议。不要写代码，不要创建文件，不要执行命令。只提供分析、步骤计划和解释。`
+                );
+            }
+
+            // 追加规则
+            const appendRuleEnabled = self.configService.getValue<boolean>('claudix.appendRuleEnabled', true) ?? true;
+            const appendRule = self.configService.getValue<string>('claudix.appendRule', '') || '';
+            if (appendRuleEnabled && appendRule.trim()) {
+                parts.push(`\n[User Custom Rules / 用户自定义规则]\n${appendRule.trim()}`);
+            }
+
+            return parts.join('\n');
+        }
 
         // 监听输入流，收到用户消息时发起查询
         const outputStream = new AsyncStream<any>();
@@ -595,19 +628,18 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     if (!textContent.trim()) continue;
 
                     try {
-                        // 根据权限模式注入系统提示词
-                        const messages: LLMMessage[] = [];
-                        if (currentPermissionMode === 'plan') {
-                            messages.push({
-                                role: 'system' as const,
-                                content: 'You are in PLAN mode. You must ONLY analyze, plan, and suggest. Do NOT write actual code, do NOT create files, do NOT execute commands. Only provide analysis, step-by-step plans, architecture suggestions, and explanations. If the user asks you to implement something, describe the plan instead of writing code.\n\n你当前处于规划模式。你只能分析、规划和建议。不要写代码，不要创建文件，不要执行命令。只提供分析、步骤计划和解释。'
-                            });
-                        }
-                        messages.push({ role: 'user' as const, content: textContent });
+                        // 构建消息：系统提示 + 用户消息
+                        const systemPrompt = buildSystemPrompt();
+                        const messages: LLMMessage[] = [
+                            { role: 'system' as const, content: systemPrompt },
+                            { role: 'user' as const, content: textContent },
+                        ];
+
+                        self.logService.info(`[HTTPProvider] query model=${currentModel}, permissionMode=${currentPermissionMode}`);
 
                         const handle = await self.llmProviderService.query({
                             messages,
-                            model: resolvedModel,
+                            model: currentModel,
                             maxThinkingTokens: maxThinkingTokens > 0 ? maxThinkingTokens : undefined,
                             stream: true,
                             cwd,
@@ -653,7 +685,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 return { value: undefined, done: true };
             },
             async setModel(m: string) {
-                // HTTP 模式下运行中切换模型仅更新后续查询
+                currentModel = m;
                 self.logService.info(`[HTTPProvider] setModel: ${m}`);
             },
             async setMaxThinkingTokens(tokens: number) {

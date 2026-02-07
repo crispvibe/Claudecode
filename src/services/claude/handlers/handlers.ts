@@ -110,35 +110,30 @@ export async function handleGetClaudeState(
 
     let config: any;
 
-    // 如果使用 Claude Code SDK 模式，使用原始 loadConfig
-    const providerType = llmProviderService?.getActiveProviderType() || 'claude-code';
+    // 统一使用 Claude Code SDK 模式
+    try {
+        config = await loadConfig(context);
+    } catch (e) {
+        logService.warn(`[handleGetClaudeState] loadConfig 失败: ${e}`);
+        config = { slashCommands: [], models: [], accountInfo: null };
+    }
 
-    if (providerType === 'claude-code') {
-        try {
-            config = await loadConfig(context);
-        } catch (e) {
-            logService.warn(`[handleGetClaudeState] loadConfig 失败: ${e}`);
-            config = { slashCommands: [], models: [], accountInfo: null };
-        }
-    } else {
-        // HTTP API Provider 模式：从 LLMProviderService 获取模型列表
-        const models = llmProviderService?.getAvailableModels() || [];
-        config = {
-            slashCommands: [],
-            models: models.map(m => ({
-                value: m.id,
-                label: m.label,
-                description: m.description,
-                provider: m.provider,
-            })),
-            accountInfo: null,
-        };
+    // 注入自定义模型（从设置中添加的模型合并到 SDK 返回的模型列表）
+    const customModels = llmProviderService?.getAvailableModels() || [];
+    if (customModels.length > 0) {
+        const existingModels = config.models || [];
+        const customModelEntries = customModels.map(m => ({
+            value: m.id,
+            label: m.label,
+            description: m.description,
+            provider: 'claude-code',
+        }));
+        config.models = [...existingModels, ...customModelEntries];
     }
 
     // 注入 Provider 信息
-    config.provider = providerType;
+    config.provider = 'claude-code';
     config.providerStatus = llmProviderService?.getStatus() || null;
-    config.allModels = llmProviderService?.getAllModels() || {};
 
     // 注入追加规则配置
     const { configService } = context;

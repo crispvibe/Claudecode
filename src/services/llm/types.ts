@@ -10,9 +10,9 @@
 // ============================================================================
 
 /**
- * 支持的 Provider 类型
+ * 支持的 Provider 类型（统一使用 Claude Code SDK）
  */
-export type ProviderType = 'claude-code' | 'openai' | 'anthropic' | 'gemini';
+export type ProviderType = 'claude-code';
 
 /**
  * Provider 配置
@@ -324,102 +324,6 @@ export const DEFAULT_MODELS: Record<ProviderType, ModelInfo[]> = {
             maxOutputTokens: 8000,
         },
     ],
-    'openai': [
-        {
-            id: 'gpt-4o',
-            label: 'GPT-4o',
-            description: '最新多模态模型',
-            provider: 'openai',
-            contextWindow: 128000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 16384,
-        },
-        {
-            id: 'gpt-4o-mini',
-            label: 'GPT-4o Mini',
-            description: '轻量高效',
-            provider: 'openai',
-            contextWindow: 128000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 16384,
-        },
-        {
-            id: 'o1',
-            label: 'O1',
-            description: '深度推理模型',
-            provider: 'openai',
-            contextWindow: 200000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 100000,
-        },
-        {
-            id: 'o3-mini',
-            label: 'O3 Mini',
-            description: '轻量推理模型',
-            provider: 'openai',
-            contextWindow: 200000,
-            supportsTools: true,
-            supportsVision: false,
-            maxOutputTokens: 100000,
-        },
-    ],
-    'anthropic': [
-        {
-            id: 'claude-sonnet-4-20250514',
-            label: 'Claude Sonnet 4',
-            description: 'Anthropic API 直连',
-            provider: 'anthropic',
-            contextWindow: 200000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 16000,
-        },
-        {
-            id: 'claude-haiku-4-20250506',
-            label: 'Claude Haiku 4',
-            description: 'Anthropic API 直连',
-            provider: 'anthropic',
-            contextWindow: 200000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 8000,
-        },
-        {
-            id: 'claude-opus-4-20250514',
-            label: 'Claude Opus 4',
-            description: 'Anthropic API 直连',
-            provider: 'anthropic',
-            contextWindow: 200000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 32000,
-        },
-    ],
-    'gemini': [
-        {
-            id: 'gemini-2.5-pro',
-            label: 'Gemini 2.5 Pro',
-            description: 'Google 最强模型',
-            provider: 'gemini',
-            contextWindow: 1000000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 65536,
-        },
-        {
-            id: 'gemini-2.5-flash',
-            label: 'Gemini 2.5 Flash',
-            description: '快速高效',
-            provider: 'gemini',
-            contextWindow: 1000000,
-            supportsTools: true,
-            supportsVision: true,
-            maxOutputTokens: 65536,
-        },
-    ],
 };
 
 /**
@@ -427,9 +331,6 @@ export const DEFAULT_MODELS: Record<ProviderType, ModelInfo[]> = {
  */
 export const PROVIDER_LABELS: Record<ProviderType, string> = {
     'claude-code': 'Claude Code (SDK)',
-    'openai': 'OpenAI 兼容',
-    'anthropic': 'Anthropic API',
-    'gemini': 'Google Gemini',
 };
 
 /**
@@ -437,7 +338,4 @@ export const PROVIDER_LABELS: Record<ProviderType, string> = {
  */
 export const PROVIDER_DEFAULT_URLS: Record<ProviderType, string> = {
     'claude-code': '',
-    'openai': 'https://api.openai.com',
-    'anthropic': 'https://api.anthropic.com',
-    'gemini': 'https://generativelanguage.googleapis.com',
 };

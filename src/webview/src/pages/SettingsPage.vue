@@ -10,39 +10,21 @@
     </div>
 
     <div class="page-content custom-scroll-container">
-      <!-- Provider 选择 -->
+      <!-- SDK 配置 -->
       <section class="settings-section">
-        <h3 class="section-title">AI 服务提供商</h3>
-        <div class="form-group">
-          <label class="form-label">Provider 类型</label>
-          <select class="form-select" v-model="provider" @change="handleProviderChange">
-            <option value="claude-code">Claude Code SDK（原生）</option>
-            <option value="openai">OpenAI 兼容</option>
-            <option value="anthropic">Anthropic API</option>
-            <option value="gemini">Google Gemini</option>
-          </select>
+        <h3 class="section-title">SDK 配置</h3>
+        <div class="form-hint" style="padding: 0 0 8px;">
+          使用 Claude Code SDK，支持完整工具链、权限模式和会话恢复。可配置自定义 API Key 和 Base URL（用于反代/自部署）。
         </div>
-      </section>
-
-      <!-- Claude Code SDK 提示 -->
-      <section v-if="provider === 'claude-code'" class="settings-section">
-        <div class="form-hint" style="padding: 8px 0;">
-          使用本地 Claude CLI 二进制文件，无需配置 API Key。支持完整工具链、权限模式 (Agent/Normal/Plan) 和会话恢复。
-        </div>
-      </section>
-
-      <!-- API 配置（仅 HTTP Provider） -->
-      <section v-if="provider !== 'claude-code'" class="settings-section">
-        <h3 class="section-title">API 配置</h3>
 
         <div class="form-group">
-          <label class="form-label">API Key</label>
+          <label class="form-label">API Key（可选）</label>
           <div class="input-with-action">
             <input
               :type="showApiKey ? 'text' : 'password'"
               class="form-input"
               v-model="apiKey"
-              :placeholder="apiKeyMasked ? '已配置: ' + apiKeyMasked : '输入 API Key...'"
+              :placeholder="apiKeyMasked ? '已配置: ' + apiKeyMasked : '留空使用本地 CLI 认证'"
               @change="saveConfig"
             />
             <button class="input-action-btn" @click="showApiKey = !showApiKey" :title="showApiKey ? '隐藏' : '显示'">
@@ -50,20 +32,20 @@
             </button>
           </div>
           <span v-if="apiKeyMasked && !apiKey" class="form-hint">已保存，输入新值可覆盖</span>
+          <span v-else class="form-hint">设置后将作为 ANTHROPIC_API_KEY 注入 SDK</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Base URL</label>
+          <label class="form-label">Base URL（可选）</label>
           <input
             type="text"
             class="form-input"
             v-model="baseUrl"
-            :placeholder="defaultBaseUrl"
+            placeholder="留空使用官方 API，填写自定义地址用于反代"
             @change="saveConfig"
           />
-          <span class="form-hint">留空使用默认地址</span>
+          <span class="form-hint">设置后将作为 ANTHROPIC_BASE_URL 注入 SDK</span>
         </div>
-
       </section>
 
       <!-- 自定义模型 -->
@@ -155,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { RuntimeKey } from '../composables/runtimeContext'
 
 const emit = defineEmits<{
@@ -166,7 +148,6 @@ const runtime = inject(RuntimeKey)
 if (!runtime) throw new Error('[SettingsPage] runtime not provided')
 
 // 状态
-const provider = ref('openai')
 const apiKey = ref('')
 const apiKeyMasked = ref('')
 const showApiKey = ref(false)
@@ -176,22 +157,13 @@ const appendRule = ref('')
 const appendRuleEnabled = ref(true)
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
-const defaultBaseUrls: Record<string, string> = {
-  'openai': 'https://api.openai.com',
-  'anthropic': 'https://api.anthropic.com',
-  'gemini': 'https://generativelanguage.googleapis.com',
-}
-
-const defaultBaseUrl = computed(() => defaultBaseUrls[provider.value] || '')
-
-// 加载 Provider 状态
+// 加载配置状态
 async function loadProviderStatus() {
   try {
     const conn = await runtime!.connectionManager.get()
 
     const response = await (conn as any).request({ type: 'get_provider_status' })
     if (response) {
-      provider.value = response.provider || 'openai'
       apiKeyMasked.value = response.apiKeyMasked || ''
       baseUrl.value = response.baseUrl || ''
 
@@ -215,7 +187,7 @@ async function loadProviderStatus() {
       }
     }
   } catch (e) {
-    console.error('[SettingsPage] 加载 Provider 状态失败:', e)
+    console.error('[SettingsPage] 加载配置状态失败:', e)
   }
 }
 
@@ -229,33 +201,6 @@ async function refreshClaudeConfig() {
     }
   } catch (e) {
     console.error('[SettingsPage] 刷新 claudeConfig 失败:', e)
-  }
-}
-
-// 切换 Provider
-async function handleProviderChange() {
-  try {
-    const conn = await runtime!.connectionManager.get()
-
-    // 重置表单字段（新 Provider 的配置将通过 loadProviderStatus 回显）
-    apiKey.value = ''
-    apiKeyMasked.value = ''
-    baseUrl.value = ''
-    customModels.value = []
-
-    const response = await (conn as any).request({
-      type: 'set_provider',
-      provider: provider.value,
-    })
-
-    if (response?.success) {
-      // 重新加载完整状态（会回显新 Provider 的已保存配置）
-      await loadProviderStatus()
-      // 刷新 claudeConfig 让聊天页模型选择器同步更新
-      await refreshClaudeConfig()
-    }
-  } catch (e) {
-    console.error('[SettingsPage] 切换 Provider 失败:', e)
   }
 }
 

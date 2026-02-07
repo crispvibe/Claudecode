@@ -29,8 +29,6 @@ import { AsyncStream, ITransport } from './transport';
 import { HandlerContext } from './handlers/types';
 import { IWebViewService } from '../webViewService';
 import { ILLMProviderService } from '../llm/ILLMProvider';
-import type { LLMQueryHandle } from '../llm/ILLMProvider';
-import type { LLMMessage } from '../llm/types';
 
 // 消息类型导入
 import type {
@@ -526,178 +524,17 @@ export class ClaudeAgentService implements IClaudeAgentService {
         permissionMode: string,
         maxThinkingTokens: number
     ): Promise<Query> {
-        const providerType = this.llmProviderService.getActiveProviderType();
-
-        // Claude Code SDK 模式：使用原生 SDK 流程
-        if (providerType === 'claude-code') {
-            this.logService.info(`[spawnClaude] 使用 Claude Code SDK 模式`);
-            return this.sdkService.query({
-                inputStream,
-                resume,
-                canUseTool,
-                model,
-                cwd,
-                permissionMode,
-                maxThinkingTokens
-            });
-        }
-
-        // HTTP API Provider 模式（OpenAI/Anthropic/Gemini）
-        this.logService.info(`[spawnClaude] 使用 ${providerType} HTTP API 模式`);
-        return this.spawnHTTPProvider(inputStream, model, cwd, maxThinkingTokens, permissionMode);
-    }
-
-    /**
-     * 使用 HTTP API Provider 启动会话
-     * 将 LLMQueryHandle 适配为 SDK Query 兼容对象
-     */
-    private async spawnHTTPProvider(
-        inputStream: AsyncStream<SDKUserMessage>,
-        model: string | null,
-        cwd: string,
-        maxThinkingTokens: number,
-        initialPermissionMode: string = 'default'
-    ): Promise<Query> {
-        const providerConfig = this.llmProviderService.getProviderConfig();
-        let currentModel = model || providerConfig.defaultModel || '';
-
-        if (!currentModel) {
-            throw new Error('未指定模型，请在设置中配置默认模型');
-        }
-
-        // 创建一个 Query 兼容的异步迭代器适配器
-        const self = this;
-        let currentHandle: LLMQueryHandle | null = null;
-        let interrupted = false;
-        let currentPermissionMode = initialPermissionMode;
-
-        // 构建系统提示词（包含工作区上下文、追加规则、权限模式）
-        function buildSystemPrompt(): string {
-            const parts: string[] = [];
-
-            // 工作区上下文
-            parts.push(
-                `You are an AI coding assistant working in a VSCode extension.`,
-                `The user's workspace is at: ${cwd}`,
-                `You have access to the user's project. When the user asks about their code, provide analysis and suggestions based on the workspace context.`,
-                `Always reference file paths relative to the workspace root.`,
-                `\n你是一个 VSCode 扩展中的 AI 编程助手。`,
-                `用户的工作区路径是: ${cwd}`,
-                `请基于工作区上下文分析和建议。文件路径使用相对于工作区根目录的路径。`
-            );
-
-            // 权限模式
-            if (currentPermissionMode === 'plan') {
-                parts.push(
-                    `\n[PLAN MODE] You must ONLY analyze, plan, and suggest. Do NOT write actual code, do NOT create files, do NOT execute commands. Only provide analysis, step-by-step plans, architecture suggestions, and explanations.`,
-                    `\n[规划模式] 你只能分析、规划和建议。不要写代码，不要创建文件，不要执行命令。只提供分析、步骤计划和解释。`
-                );
-            }
-
-            // 追加规则
-            const appendRuleEnabled = self.configService.getValue<boolean>('claudix.appendRuleEnabled', true) ?? true;
-            const appendRule = self.configService.getValue<string>('claudix.appendRule', '') || '';
-            if (appendRuleEnabled && appendRule.trim()) {
-                parts.push(`\n[User Custom Rules / 用户自定义规则]\n${appendRule.trim()}`);
-            }
-
-            return parts.join('\n');
-        }
-
-        // 监听输入流，收到用户消息时发起查询
-        const outputStream = new AsyncStream<any>();
-
-        // 启动输入监听循环
-        (async () => {
-            try {
-                for await (const userMsg of inputStream) {
-                    if (interrupted) break;
-
-                    // 将 SDK 用户消息转换为 LLM 消息格式
-                    const content = userMsg.message?.content;
-                    let textContent = '';
-                    if (typeof content === 'string') {
-                        textContent = content;
-                    } else if (Array.isArray(content)) {
-                        textContent = content
-                            .filter((b: any) => b.type === 'text')
-                            .map((b: any) => b.text)
-                            .join('\n');
-                    }
-
-                    if (!textContent.trim()) continue;
-
-                    try {
-                        // 构建消息：系统提示 + 用户消息
-                        const systemPrompt = buildSystemPrompt();
-                        const messages: LLMMessage[] = [
-                            { role: 'system' as const, content: systemPrompt },
-                            { role: 'user' as const, content: textContent },
-                        ];
-
-                        self.logService.info(`[HTTPProvider] query model=${currentModel}, permissionMode=${currentPermissionMode}`);
-
-                        const handle = await self.llmProviderService.query({
-                            messages,
-                            model: currentModel,
-                            maxThinkingTokens: maxThinkingTokens > 0 ? maxThinkingTokens : undefined,
-                            stream: true,
-                            cwd,
-                        });
-                        currentHandle = handle;
-
-                        for await (const event of handle) {
-                            if (interrupted) break;
-                            outputStream.enqueue(event);
-                        }
-                    } catch (err: any) {
-                        outputStream.enqueue({
-                            type: 'result',
-                            subtype: 'error',
-                            error: err.message || String(err),
-                            is_error: true,
-                        });
-                    }
-                }
-            } catch (err) {
-                self.logService.error(`[spawnHTTPProvider] 输入流错误: ${err}`);
-            } finally {
-                outputStream.done();
-            }
-        })();
-
-        // 构造 Query 兼容对象
-        // 注意: AsyncStream 只允许迭代一次，必须提前获取迭代器引用
-        const outputIterator = outputStream[Symbol.asyncIterator]();
-        const queryLike: any = {
-            [Symbol.asyncIterator]() {
-                return outputIterator;
-            },
-            async interrupt() {
-                interrupted = true;
-                if (currentHandle) {
-                    await currentHandle.interrupt();
-                }
-            },
-            async return() {
-                interrupted = true;
-                outputStream.done();
-                return { value: undefined, done: true };
-            },
-            async setModel(m: string) {
-                currentModel = m;
-                self.logService.info(`[HTTPProvider] setModel: ${m}`);
-            },
-            async setMaxThinkingTokens(tokens: number) {
-                maxThinkingTokens = tokens;
-            },
-            async setPermissionMode(mode: any) {
-                currentPermissionMode = mode;
-                self.logService.info(`[HTTPProvider] setPermissionMode: ${mode}`);
-            },
-        };
-
-        return queryLike as Query;
+        // 统一使用 Claude Code SDK（支持自定义 API Key / Base URL / Model）
+        this.logService.info(`[spawnClaude] 使用 Claude Code SDK 模式`);
+        return this.sdkService.query({
+            inputStream,
+            resume,
+            canUseTool,
+            model,
+            cwd,
+            permissionMode,
+            maxThinkingTokens
+        });
     }
 
     /**

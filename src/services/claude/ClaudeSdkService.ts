@@ -275,13 +275,27 @@ export class ClaudeSdkService implements IClaudeSdkService {
     }
 
     /**
-     * 获取环境变量
+     * 获取环境变量（注入自定义 API Key / Base URL）
      */
     private getEnvironmentVariables(): Record<string, string> {
+        const env = { ...process.env };
+
+        // 从 claudix 配置读取自定义 API Key 和 Base URL
+        const apiKey = this.configService.getValue<string>('claudix.apiKey', '');
+        const baseUrl = this.configService.getValue<string>('claudix.baseUrl', '');
+
+        if (apiKey) {
+            env.ANTHROPIC_API_KEY = apiKey;
+            this.logService.info(`[ClaudeSdkService] 使用自定义 API Key: ${apiKey.slice(0, 4)}****`);
+        }
+        if (baseUrl) {
+            env.ANTHROPIC_BASE_URL = baseUrl;
+            this.logService.info(`[ClaudeSdkService] 使用自定义 Base URL: ${baseUrl}`);
+        }
+
+        // 用户自定义环境变量（优先级最高，可覆盖上面的值）
         const config = vscode.workspace.getConfiguration("claudix");
         const customVars = config.get<Array<{ name: string; value: string }>>("environmentVariables", []);
-
-        const env = { ...process.env };
         for (const item of customVars) {
             if (item.name) {
                 env[item.name] = item.value || "";

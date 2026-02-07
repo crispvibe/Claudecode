@@ -270,18 +270,27 @@ async function saveConfig() {
     }
 
     // 只发送有值的字段，避免 undefined 覆盖后端已有配置
+    // 深拷贝对象/数组，防止 Vue Proxy 序列化问题
     const config: Record<string, any> = {}
     if (apiKey.value) config.apiKey = apiKey.value
     if (baseUrl.value) config.baseUrl = baseUrl.value
-    if (customModels.value.length > 0) config.customModels = customModels.value
-    if (Object.keys(extraHeaders).length > 0) config.extraHeaders = extraHeaders
+    if (customModels.value.length > 0) {
+      config.customModels = JSON.parse(JSON.stringify(customModels.value))
+    }
+    if (Object.keys(extraHeaders).length > 0) {
+      config.extraHeaders = JSON.parse(JSON.stringify(extraHeaders))
+    }
     config.appendRule = appendRule.value
     config.appendRuleEnabled = appendRuleEnabled.value
 
-    await conn.request({
+    const response = await conn.request({
       type: 'update_provider_config',
       config,
-    })
+    }) as any
+
+    if (response && response.success === false) {
+      throw new Error(response.error || '保存失败')
+    }
 
     // 刷新状态
     await loadProviderStatus()

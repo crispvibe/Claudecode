@@ -846,19 +846,22 @@ export class ClaudeAgentService implements IClaudeAgentService {
             case "update_provider_config": {
                 const configReq = request as any;
                 try {
-                    await this.llmProviderService.updateProviderConfig(configReq.config);
+                    // 分离追加规则字段，不传给 Provider 配置
+                    const { appendRule, appendRuleEnabled, ...providerConfig } = configReq.config || {};
+                    await this.llmProviderService.updateProviderConfig(providerConfig);
                     // 持久化追加规则（独立于 Provider 配置）
-                    if (configReq.config.appendRule !== undefined) {
-                        await this.configService.updateValue('claudix.appendRule', configReq.config.appendRule);
+                    if (appendRule !== undefined) {
+                        await this.configService.updateValue('claudix.appendRule', appendRule);
                     }
-                    if (configReq.config.appendRuleEnabled !== undefined) {
-                        await this.configService.updateValue('claudix.appendRuleEnabled', configReq.config.appendRuleEnabled);
+                    if (appendRuleEnabled !== undefined) {
+                        await this.configService.updateValue('claudix.appendRuleEnabled', appendRuleEnabled);
                     }
                     return {
                         type: "update_provider_config_response",
                         success: true,
                     };
                 } catch (err: any) {
+                    this.logService.error(`[ClaudeAgentService] update_provider_config 失败: ${err.message}`);
                     return {
                         type: "update_provider_config_response",
                         success: false,

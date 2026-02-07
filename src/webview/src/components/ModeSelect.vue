@@ -18,18 +18,6 @@
     <template #content="{ close }">
       <DropdownItem
         :item="{
-          id: 'default',
-          label: 'Normal',
-          icon: 'codicon-chat text-[14px]!',
-          checked: permissionMode === 'default',
-          type: 'default-mode'
-        }"
-        :is-selected="permissionMode === 'default'"
-        :index="0"
-        @click="(item) => handleModeSelect(item, close)"
-      />
-      <DropdownItem
-        :item="{
           id: 'acceptEdits',
           label: 'Agent',
           icon: 'codicon-infinity text-[14px]!',
@@ -37,6 +25,18 @@
           type: 'agent-mode'
         }"
         :is-selected="permissionMode === 'acceptEdits'"
+        :index="0"
+        @click="(item) => handleModeSelect(item, close)"
+      />
+      <DropdownItem
+        :item="{
+          id: 'default',
+          label: 'Normal',
+          icon: 'codicon-chat text-[14px]!',
+          checked: permissionMode === 'default',
+          type: 'default-mode'
+        }"
+        :is-selected="permissionMode === 'default'"
         :index="1"
         @click="(item) => handleModeSelect(item, close)"
       />
@@ -70,7 +70,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  permissionMode: 'default'
+  permissionMode: 'acceptEdits'
 })
 
 const emit = defineEmits<Emits>()

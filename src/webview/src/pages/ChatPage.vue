@@ -137,7 +137,7 @@
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
   const isBusy = computed(() => session.value?.busy.value ?? false);
   const permissionMode = computed(
-    () => session.value?.permissionMode.value ?? 'default'
+    () => session.value?.permissionMode.value ?? 'acceptEdits'
   );
   const permissionRequests = computed(
     () => session.value?.permissionRequests.value ?? []
@@ -313,8 +313,8 @@
   const togglePermissionMode = () => {
     const s = session.value;
     if (!s) return;
-    const order: PermissionMode[] = ['default', 'acceptEdits', 'plan'];
-    const cur = (s.permissionMode.value as PermissionMode) ?? 'default';
+    const order: PermissionMode[] = ['acceptEdits', 'default', 'plan'];
+    const cur = (s.permissionMode.value as PermissionMode) ?? 'acceptEdits';
     const idx = Math.max(0, order.indexOf(cur));
     const next = order[(idx + 1) % order.length];
     void s.setPermissionMode(next);

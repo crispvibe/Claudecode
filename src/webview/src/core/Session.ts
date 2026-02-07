@@ -77,7 +77,7 @@ export class Session {
   readonly messages = signal<Message[]>([]);
   readonly messageCount = signal<number>(0);
   readonly cwd = signal<string | undefined>(undefined);
-  readonly permissionMode = signal<PermissionMode>('default');
+  readonly permissionMode = signal<PermissionMode>('acceptEdits');
   readonly summary = signal<string | undefined>(undefined);
   readonly modelSelection = signal<string | undefined>(undefined);
   readonly thinkingLevel = signal<string>('default_on');

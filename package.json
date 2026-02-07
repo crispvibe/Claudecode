@@ -2,7 +2,7 @@
   "name": "claudix-vscode",
   "displayName": "Claudecode - AI 智能编程助手",
   "description": "多协议 AI 智能编程助手，支持 Claude Code、OpenAI、Anthropic、Gemini 多种服务提供商。",
-  "version": "0.3.9",
+  "version": "1.0.0",
   "publisher": "Anna",
   "engines": {
     "vscode": "^1.98.0",

@@ -16,22 +16,15 @@
         <div class="form-group">
           <label class="form-label">Provider 类型</label>
           <select class="form-select" v-model="provider" @change="handleProviderChange">
-            <option value="claude-code">Claude Code (SDK 原生)</option>
             <option value="openai">OpenAI 兼容</option>
             <option value="anthropic">Anthropic API</option>
             <option value="gemini">Google Gemini</option>
           </select>
         </div>
-
-        <!-- 状态指示 -->
-        <div class="status-bar" :class="{ ready: providerReady, 'not-ready': !providerReady }">
-          <span class="codicon" :class="providerReady ? 'codicon-check' : 'codicon-warning'"></span>
-          <span>{{ providerReady ? '已就绪' : '未配置 API Key' }}</span>
-        </div>
       </section>
 
-      <!-- API 配置（非 claude-code 模式） -->
-      <section v-if="provider !== 'claude-code'" class="settings-section">
+      <!-- API 配置 -->
+      <section class="settings-section">
         <h3 class="section-title">API 配置</h3>
 
         <div class="form-group">
@@ -58,18 +51,10 @@
           <span class="form-hint">留空使用默认地址</span>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">默认模型</label>
-          <select class="form-select" v-model="defaultModel" @change="saveConfig">
-            <option v-for="m in availableModels" :key="m.value" :value="m.value">
-              {{ m.label }}
-            </option>
-          </select>
-        </div>
       </section>
 
       <!-- 自定义模型 -->
-      <section v-if="provider !== 'claude-code'" class="settings-section">
+      <section class="settings-section">
         <h3 class="section-title">
           自定义模型
           <button class="add-btn" @click="addCustomModel">
@@ -111,7 +96,7 @@
       </section>
 
       <!-- 额外请求头 -->
-      <section v-if="provider !== 'claude-code'" class="settings-section">
+      <section class="settings-section">
         <h3 class="section-title">额外请求头（可选）</h3>
         <div class="form-group">
           <textarea
@@ -125,21 +110,25 @@
         </div>
       </section>
 
-      <!-- 保存状态 -->
-      <section class="settings-section">
+      <!-- 保存按钮 + 状态 -->
+      <section class="settings-section save-section">
+        <button class="save-btn" @click="saveConfig" :disabled="saveStatus === 'saving'">
+          <span class="codicon" :class="saveStatus === 'saving' ? 'codicon-loading codicon-modifier-spin' : 'codicon-save'"></span>
+          <span>{{ saveStatus === 'saving' ? '保存中...' : '保存配置' }}</span>
+        </button>
         <div v-if="saveStatus === 'saved'" class="save-indicator saved">
           <span class="codicon codicon-check"></span>
           <span>配置已保存</span>
-        </div>
-        <div v-else-if="saveStatus === 'saving'" class="save-indicator saving">
-          <span class="codicon codicon-loading codicon-modifier-spin"></span>
-          <span>保存中...</span>
         </div>
         <div v-else-if="saveStatus === 'error'" class="save-indicator error">
           <span class="codicon codicon-error"></span>
           <span>保存失败</span>
         </div>
-        <div class="version-info">Claudecode v0.3.9</div>
+      </section>
+
+      <!-- 版本信息 -->
+      <section class="settings-section">
+        <div class="version-info">Claudecode v1.0.0</div>
       </section>
     </div>
   </div>
@@ -157,19 +146,15 @@ const runtime = inject(RuntimeKey)
 if (!runtime) throw new Error('[SettingsPage] runtime not provided')
 
 // 状态
-const provider = ref('claude-code')
+const provider = ref('openai')
 const apiKey = ref('')
 const apiKeyMasked = ref('')
 const baseUrl = ref('')
-const defaultModel = ref('')
 const customModels = ref<Array<{ id: string; label: string; description?: string }>>([])
 const extraHeadersText = ref('')
-const providerReady = ref(true)
-const availableModels = ref<Array<{ value: string; label: string }>>([])
 const saveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 const defaultBaseUrls: Record<string, string> = {
-  'claude-code': '',
   'openai': 'https://api.openai.com',
   'anthropic': 'https://api.anthropic.com',
   'gemini': 'https://generativelanguage.googleapis.com',
@@ -180,16 +165,13 @@ const defaultBaseUrl = computed(() => defaultBaseUrls[provider.value] || '')
 // 加载 Provider 状态
 async function loadProviderStatus() {
   try {
-    const conn = runtime!.connectionManager.connection()
-    if (!conn) return
+    const conn = await runtime!.connectionManager.get()
 
     const response = await (conn as any).request({ type: 'get_provider_status' })
     if (response) {
-      provider.value = response.provider || 'claude-code'
-      providerReady.value = response.ready ?? true
+      provider.value = response.provider || 'openai'
       apiKeyMasked.value = response.apiKeyMasked || ''
       baseUrl.value = response.baseUrl || ''
-      defaultModel.value = response.currentModel || ''
 
       // 回显自定义模型
       if (response.customModels && Array.isArray(response.customModels) && response.customModels.length > 0) {
@@ -198,18 +180,15 @@ async function loadProviderStatus() {
           label: m.label || '',
           description: m.description,
         }))
+      } else {
+        customModels.value = []
       }
 
       // 回显额外请求头
       if (response.extraHeaders && typeof response.extraHeaders === 'object' && Object.keys(response.extraHeaders).length > 0) {
         extraHeadersText.value = JSON.stringify(response.extraHeaders, null, 2)
-      }
-
-      if (response.models && Array.isArray(response.models)) {
-        availableModels.value = response.models.map((m: any) => ({
-          value: m.value || m.id || '',
-          label: m.label || m.value || '',
-        }))
+      } else {
+        extraHeadersText.value = ''
       }
     }
   } catch (e) {
@@ -220,14 +199,12 @@ async function loadProviderStatus() {
 // 切换 Provider
 async function handleProviderChange() {
   try {
-    const conn = runtime!.connectionManager.connection()
-    if (!conn) return
+    const conn = await runtime!.connectionManager.get()
 
-    // 重置表单字段，避免前一个 Provider 的值残留
+    // 重置表单字段（新 Provider 的配置将通过 loadProviderStatus 回显）
     apiKey.value = ''
     apiKeyMasked.value = ''
     baseUrl.value = ''
-    defaultModel.value = ''
     customModels.value = []
     extraHeadersText.value = ''
 
@@ -237,12 +214,6 @@ async function handleProviderChange() {
     })
 
     if (response?.success) {
-      if (response.models) {
-        availableModels.value = response.models.map((m: any) => ({
-          value: m.value || '',
-          label: m.label || m.value || '',
-        }))
-      }
       // 重新加载完整状态（会回显新 Provider 的已保存配置）
       await loadProviderStatus()
     }
@@ -256,11 +227,7 @@ let saveTimer: any = null
 async function saveConfig() {
   try {
     saveStatus.value = 'saving'
-    const conn = runtime!.connectionManager.connection()
-    if (!conn) {
-      saveStatus.value = 'error'
-      return
-    }
+    const conn = await runtime!.connectionManager.get()
 
     let extraHeaders: Record<string, string> = {}
     if (extraHeadersText.value.trim()) {
@@ -271,15 +238,16 @@ async function saveConfig() {
       }
     }
 
-    await (conn as any).request({
+    // 只发送有值的字段，避免 undefined 覆盖后端已有配置
+    const config: Record<string, any> = {}
+    if (apiKey.value) config.apiKey = apiKey.value
+    if (baseUrl.value) config.baseUrl = baseUrl.value
+    if (customModels.value.length > 0) config.customModels = customModels.value
+    if (Object.keys(extraHeaders).length > 0) config.extraHeaders = extraHeaders
+
+    await conn.request({
       type: 'update_provider_config',
-      config: {
-        apiKey: apiKey.value || undefined,
-        baseUrl: baseUrl.value || undefined,
-        defaultModel: defaultModel.value || undefined,
-        customModels: customModels.value.length > 0 ? customModels.value : undefined,
-        extraHeaders: Object.keys(extraHeaders).length > 0 ? extraHeaders : undefined,
-      },
+      config,
     })
 
     // 刷新状态
@@ -549,6 +517,37 @@ onMounted(() => {
 
 .btn-secondary:hover {
   background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.save-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.save-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .save-indicator {

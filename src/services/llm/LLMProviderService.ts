@@ -98,7 +98,12 @@ export class LLMProviderService implements ILLMProviderService {
     }
 
     async updateProviderConfig(config: Partial<ProviderConfig>): Promise<void> {
-        Object.assign(this.currentConfig, config);
+        // 只合并非 undefined 的值，防止覆盖已有配置
+        for (const [key, value] of Object.entries(config)) {
+            if (value !== undefined) {
+                (this.currentConfig as any)[key] = value;
+            }
+        }
 
         // 重新初始化当前 Provider
         const provider = this.providers.get(this.activeType);

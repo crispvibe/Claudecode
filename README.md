@@ -1,12 +1,7 @@
-# Claudecode - AI Coding Assistant | AI 智能编程助手
+# Claudecode
 
 <p align="center">
   <img src="resources/claude-logo.png" alt="Claudecode Logo" width="128" height="128">
-</p>
-
-<p align="center">
-  <strong>Multi-protocol AI Coding Assistant for VSCode</strong><br>
-  <strong>多协议 AI 智能编程助手 — 在 VSCode 中与 AI 实时协作编程</strong>
 </p>
 
 <p align="center">
@@ -18,25 +13,20 @@
 </p>
 
 <p align="center">
-  <a href="#features--功能特性">Features</a> •
-  <a href="#quick-start--快速开始">Quick Start</a> •
-  <a href="#supported-ai-services--支持的-ai-服务">AI Services</a> •
-  <a href="#configuration--配置说明">Configuration</a> •
-  <a href="#development--开发指南">Development</a> •
-  <a href="#acknowledgements--鸣谢">Credits</a>
+  <a href="#english">English</a> | <a href="#中文">中文</a>
 </p>
 
 ---
 
-## Introduction | 简介
+<a id="english"></a>
+
+## English
+
+### Introduction
 
 Claudecode is a powerful VSCode extension that integrates multiple AI LLMs directly into your editor. It provides an interactive chat interface, intelligent code analysis, file operations, terminal command execution, and more — making AI your true coding partner.
 
-Claudecode 是一个功能强大的 VSCode 扩展，将多种 AI 大语言模型直接集成到你的编辑器中。它提供了交互式聊天界面、智能代码分析、文件操作、终端命令执行等丰富功能，让 AI 成为你真正的编程搭档。
-
 Unlike other AI coding assistants, Claudecode supports **multi-protocol, multi-provider** access. You can freely choose from OpenAI, Anthropic, Gemini and connect to any OpenAI API-compatible third-party service.
-
-与其他 AI 编程助手不同，Claudecode 支持**多协议多服务商**接入，你可以自由选择 OpenAI、Anthropic、Gemini 等不同的 AI 服务，甚至接入任何 OpenAI API 兼容的第三方服务。
 
 <p align="center">
   <img src="resources/screenshot-chat.png" alt="Claudecode Chat Interface" width="400">
@@ -44,88 +34,67 @@ Unlike other AI coding assistants, Claudecode supports **multi-protocol, multi-p
   <em>Claudecode Chat — AI-powered sidebar conversation</em>
 </p>
 
-## Features | 功能特性
+### Features
 
-### Multi-Protocol AI Support | 多协议 AI 支持
+#### Multi-Protocol AI Support
 
-- **OpenAI Compatible** — Supports `/v1/chat/completions` protocol, compatible with OpenAI, DeepSeek, Qwen, Moonshot, etc.
-- **Anthropic Direct** — Supports `/v1/messages` protocol for Claude models
-- **Google Gemini** — Supports `/v1beta/models` protocol for Gemini models
+- **OpenAI Compatible** — Supports `/v1/chat/completions`, compatible with OpenAI, DeepSeek, Qwen, Moonshot, etc.
+- **Anthropic Direct** — Supports `/v1/messages` for Claude models
+- **Google Gemini** — Supports `/v1beta/models` for Gemini models
 
-### Intelligent Coding Assistant | 智能编程助手
+#### Intelligent Coding Assistant
 
-- **Interactive Chat** — Sidebar chat with Markdown, code highlighting, LaTeX support
-- **Session Management** — Multiple sessions, history, session restore
+- **Interactive Chat** — Sidebar chat with Markdown, code highlighting, LaTeX
+- **Session Management** — Multiple sessions, history, restore
 - **Streaming Response** — Real-time streaming output
 
-### Powerful Tool Integration | 强大的工具集成
+#### Powerful Tools
 
 - **File Read/Write** — Smart file operations with diff preview
-- **Batch Edit** — Modify multiple files in one operation
-- **Terminal Commands** — Execute commands directly in the editor
-- **Content Search** — Grep content search and Glob file finder
-- **Web Search** — Search the internet for latest information
-- **Notebook Editing** — Jupyter Notebook support
-- **MCP Tools** — Model Context Protocol extension tools
+- **Batch Edit** — Modify multiple files at once
+- **Terminal Commands** — Execute commands in the editor
+- **Content Search** — Grep + Glob file finder
+- **Web Search** — Internet search for latest info
+- **Notebook** — Jupyter Notebook support
+- **MCP Tools** — Model Context Protocol extensions
 
-### Append Rules | 追加规则
+#### Append Rules
 
-- **Custom Append Rules** — Define rules that automatically append to every message sent to AI
-- **Per-workspace or Global** — Configure rules that apply globally or per workspace
-- **Enable/Disable Toggle** — Quickly toggle append rules on or off from the settings page
-- **Default Template** — Ships with a sensible default rule template
+- Define rules that auto-append to every message sent to AI
+- Enable/disable toggle in settings
+- Ships with a default rule template
 
-自定义追加规则 — 每次发送消息时自动追加到内容末尾，用于引导 AI 按照你的习惯回答。支持全局规则，可在设置页面快速启用/禁用，自带默认模板。
+#### Message Queue
 
-### Message Queue | 消息队列
+- Messages sent while AI is responding are auto-queued
+- Queued messages sent sequentially after AI completes
+- Click to edit, reorder (up/down), or remove items
+- Visual indicator above input box
 
-- **Auto Queue** — Messages sent while AI is responding are automatically queued
-- **Auto Send** — Queued messages are sent sequentially after AI completes each response
-- **Queue Management** — View, remove individual items, or clear the entire queue
-- **Visual Indicator** — Queue appears above the input box with message count
+#### Drag & Drop
 
-消息队列 — AI 回复中发送的消息自动排队，AI 完成后按顺序自动发送。支持查看、移除、清空队列，队列显示在输入框上方。
+- **Image** — Drag images into input as attachments (no Shift needed)
+- **Files** — Drag non-image files to insert absolute path
+- **Shift + Drag** — Insert workspace-relative `@path` mention
+- **Paste** — Paste images from clipboard
 
-### Drag & Drop Support | 拖拽支持
+#### Security & Control
 
-- **Image Drag** — Drag images directly into the input box as attachments (no Shift needed)
-- **File Path Insert** — Drag non-image files to insert their full absolute path
-- **@Mention Mode** — Hold Shift while dragging to insert workspace-relative `@path` mentions
-- **Clipboard Paste** — Paste images from clipboard as attachments
+- **Three Modes** — Agent (default), Normal (confirm), Plan (read-only)
+- **Permission Approval** — Sensitive ops require authorization
+- **Transparent Tool Calls** — All AI tool usage fully visible
 
-拖拽支持 — 直接拖入图片作为附件，拖入非图片文件插入绝对路径，按住 Shift 拖拽使用 @mention 相对路径引用。支持从剪贴板粘贴图片。
+### Supported AI Services
 
-### Security & Control | 安全与控制
+| Provider | Protocol | Streaming |
+|----------|----------|:---------:|
+| **OpenAI** | `/v1/chat/completions` | ✅ |
+| **Anthropic** | `/v1/messages` | ✅ |
+| **Gemini** | `/v1beta/models` | ✅ |
 
-- **Three Modes** — Agent (default, auto-execute edits), Normal (requires confirmation), Plan (planning only)
-- **Permission Approval** — Sensitive operations require explicit authorization
-- **Transparent Tool Calls** — All AI tool usage is fully visible
+> **Tip**: Via OpenAI-compatible protocol, connect to DeepSeek, Qwen, Moonshot, Yi, Groq, Together AI, etc.
 
-三种操作模式 — Agent（默认，自动执行编辑）、Normal（需确认）、Plan（仅规划不执行）
-
-### User Experience | 用户体验
-
-- **Chinese Interface** — All UI elements localized in Chinese
-- **Custom Models** — Add any custom model ID and display name
-- **In-plugin Settings** — Complete all configuration without leaving the editor
-- **Smart Scrolling** — History viewing won't be interrupted by new messages
-- **Explicit Save Button** — Save configuration with a dedicated save button
-
-## Supported AI Services | 支持的 AI 服务
-
-| Provider | Protocol | Streaming | Description |
-|----------|----------|:---------:|-------------|
-| **OpenAI** | `/v1/chat/completions` | ✅ | Compatible with all OpenAI API format services |
-| **Anthropic** | `/v1/messages` | ✅ | Direct Anthropic API, Claude model series |
-| **Gemini** | `/v1beta/models` | ✅ | Google Gemini API |
-
-> **Tip**: Via OpenAI-compatible protocol, connect to DeepSeek, Qwen, Moonshot, Yi, Groq, Together AI, and any OpenAI API-compatible service.
->
-> **提示**：通过 OpenAI 兼容协议，可接入 DeepSeek、通义千问、Moonshot、零一万物、Groq、Together AI 等任何支持 OpenAI API 格式的服务。
-
-## Quick Start | 快速开始
-
-### Install from Source | 从源码安装
+### Quick Start
 
 ```bash
 git clone https://github.com/crispvibe/Claudecode.git
@@ -135,127 +104,218 @@ pnpm build
 pnpm package
 ```
 
-Install the generated `.vsix` file via **Extensions → Install from VSIX** in VSCode.
+Install `.vsix` via **Extensions → Install from VSIX** in VSCode.
 
-在 VSCode 中通过 **扩展 → 从 VSIX 安装** 来安装生成的 `.vsix` 文件。
+#### First Setup
 
-### First Setup | 首次配置
-
-1. Click the Claudecode icon in the Activity Bar to open the sidebar
-2. Click the ⚙️ gear icon to enter Settings
-3. Select an AI Provider (OpenAI / Anthropic / Gemini)
-4. Enter API Key and Base URL (if needed)
+1. Click Claudecode icon in Activity Bar
+2. Click ⚙️ gear → Settings
+3. Select Provider (OpenAI / Anthropic / Gemini)
+4. Enter API Key and Base URL
 5. Add custom models (optional)
 6. Configure append rules (optional)
-7. Return to chat and start coding with AI
+7. Start chatting
 
-## Configuration | 配置说明
+### Configuration
 
-### Provider Config | Provider 配置
+| Setting | Example |
+|---------|---------|
+| **Provider** | `openai` / `anthropic` / `gemini` |
+| **API Key** | `sk-xxxx...` |
+| **Base URL** | `https://api.deepseek.com` |
+| **Custom Models** | ID: `gpt-4o`, Name: `GPT-4o` |
+| **Append Rules** | Custom instruction template |
 
-| Setting | Description | Example |
-|---------|-------------|---------|
-| **Provider** | AI service provider | `openai` / `anthropic` / `gemini` |
-| **API Key** | Provider API key | `sk-xxxx...` |
-| **Base URL** | Custom API endpoint | `https://api.deepseek.com` |
-| **Custom Models** | Custom model ID and name | ID: `gpt-4o`, Name: `GPT-4o` |
-| **Extra Headers** | Custom HTTP headers (JSON) | `{"X-Custom": "value"}` |
-| **Append Rules** | Auto-append text to every message | Custom instruction template |
+#### Third-Party Examples
 
-### Third-Party Examples | 接入第三方服务示例
+- **DeepSeek** — `openai` + `https://api.deepseek.com` + `deepseek-chat`
+- **Qwen** — `openai` + `https://dashscope.aliyuncs.com/compatible-mode` + `qwen-plus`
+- **Moonshot** — `openai` + `https://api.moonshot.cn` + `moonshot-v1-128k`
 
-**DeepSeek:**
-- Provider: `openai`
-- Base URL: `https://api.deepseek.com`
-- Models: `deepseek-chat` / `deepseek-reasoner`
+### Development
 
-**Qwen (通义千问):**
-- Provider: `openai`
-- Base URL: `https://dashscope.aliyuncs.com/compatible-mode`
-- Models: `qwen-plus` / `qwen-max`
+```bash
+pnpm dev                # HMR dev server
+pnpm build              # Build all
+pnpm build:extension    # Backend only
+pnpm build:webview      # Frontend only
+pnpm package            # Package VSIX
+```
 
-**Moonshot (Kimi):**
-- Provider: `openai`
-- Base URL: `https://api.moonshot.cn`
-- Models: `moonshot-v1-128k`
+Requirements: Node.js >= 18, pnpm >= 8, VSCode >= 1.98
 
-## Architecture | 项目架构
+### Contributing
+
+1. Fork → 2. Branch → 3. Commit → 4. Push → 5. PR
+
+### Acknowledgements
+
+Based on [Claudix](https://github.com/Haleclipse/Claudix) by [Haleclipse](https://github.com/Haleclipse). Thank you for the outstanding open-source work.
+
+### License
+
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) — Based on [Claudix](https://github.com/Haleclipse/Claudix) © Haleclipse
+
+---
+
+<a id="中文"></a>
+
+## 中文
+
+### 简介
+
+Claudecode 是一个功能强大的 VSCode 扩展，将多种 AI 大语言模型直接集成到编辑器中。提供交互式聊天界面、智能代码分析、文件操作、终端命令执行等功能，让 AI 成为你真正的编程搭档。
+
+支持**多协议多服务商**接入，可自由选择 OpenAI、Anthropic、Gemini，或接入任何 OpenAI API 兼容的第三方服务。
+
+<p align="center">
+  <img src="resources/screenshot-chat.png" alt="Claudecode 聊天界面" width="400">
+  <br>
+  <em>Claudecode 聊天界面 — 侧边栏 AI 对话</em>
+</p>
+
+### 功能特性
+
+#### 多协议 AI 支持
+
+- **OpenAI 兼容** — 支持 `/v1/chat/completions`，兼容 OpenAI、DeepSeek、通义千问、Moonshot 等
+- **Anthropic 直连** — 支持 `/v1/messages`，Claude 系列模型
+- **Google Gemini** — 支持 `/v1beta/models`，Gemini 系列模型
+
+#### 智能编程助手
+
+- **交互式聊天** — 侧边栏聊天，Markdown 渲染、代码高亮、LaTeX 公式
+- **会话管理** — 多会话、历史记录、会话恢复
+- **流式响应** — 实时流式输出
+
+#### 强大的工具集成
+
+- **文件读写** — 智能文件操作，差异对比预览
+- **批量编辑** — 一次修改多个文件
+- **终端命令** — 编辑器内执行命令
+- **内容搜索** — Grep 搜索 + Glob 文件查找
+- **网页搜索** — 搜索互联网获取最新信息
+- **笔记本** — Jupyter Notebook 支持
+- **MCP 工具** — Model Context Protocol 扩展工具
+
+#### 追加规则
+
+- 自定义规则，每次发送消息时自动追加到末尾
+- 设置页面启用/禁用开关
+- 自带默认规则模板，引导 AI 按你的习惯回答
+
+#### 消息队列
+
+- AI 回复中发送的消息自动排队
+- AI 完成后按顺序自动发送
+- 支持点击编辑、上下排序、移除
+- 队列显示在输入框上方
+
+#### 拖拽支持
+
+- **图片** — 直接拖入图片作为附件（无需 Shift）
+- **文件** — 拖入非图片文件插入绝对路径
+- **Shift + 拖拽** — 插入工作区相对 `@路径` 引用
+- **粘贴** — 从剪贴板粘贴图片
+
+#### 安全与控制
+
+- **三种模式** — Agent（默认，自动执行）、Normal（需确认）、Plan（仅规划）
+- **权限审批** — 敏感操作需授权
+- **工具调用透明** — 所有 AI 工具调用完全可见
+
+### 支持的 AI 服务
+
+| Provider | 协议 | 流式支持 |
+|----------|------|:--------:|
+| **OpenAI** | `/v1/chat/completions` | ✅ |
+| **Anthropic** | `/v1/messages` | ✅ |
+| **Gemini** | `/v1beta/models` | ✅ |
+
+> **提示**：通过 OpenAI 兼容协议，可接入 DeepSeek、通义千问、Moonshot、零一万物、Groq、Together AI 等。
+
+### 快速开始
+
+```bash
+git clone https://github.com/crispvibe/Claudecode.git
+cd Claudecode
+pnpm install
+pnpm build
+pnpm package
+```
+
+在 VSCode 中通过 **扩展 → 从 VSIX 安装** 安装 `.vsix` 文件。
+
+#### 首次配置
+
+1. 点击活动栏 Claudecode 图标
+2. 点击 ⚙️ 齿轮进入设置
+3. 选择 Provider（OpenAI / Anthropic / Gemini）
+4. 输入 API Key 和 Base URL
+5. 添加自定义模型（可选）
+6. 配置追加规则（可选）
+7. 开始对话
+
+### 配置说明
+
+| 配置项 | 示例 |
+|--------|------|
+| **Provider** | `openai` / `anthropic` / `gemini` |
+| **API Key** | `sk-xxxx...` |
+| **Base URL** | `https://api.deepseek.com` |
+| **自定义模型** | ID: `gpt-4o`，名称: `GPT-4o` |
+| **追加规则** | 自定义指令模板 |
+
+#### 接入第三方服务
+
+- **DeepSeek** — `openai` + `https://api.deepseek.com` + `deepseek-chat`
+- **通义千问** — `openai` + `https://dashscope.aliyuncs.com/compatible-mode` + `qwen-plus`
+- **Moonshot** — `openai` + `https://api.moonshot.cn` + `moonshot-v1-128k`
+
+### 项目架构
 
 ```
 Claudecode/
 ├── src/
-│   ├── services/              # Backend services
-│   │   ├── claude/            # Claude Agent (message routing, session mgmt)
-│   │   └── llm/               # LLM Provider abstraction
-│   │       ├── providers/     # Provider implementations (OpenAI/Anthropic/Gemini)
-│   │       ├── ILLMProvider.ts
-│   │       └── LLMProviderService.ts
-│   └── webview/               # Frontend (Vue 3)
+│   ├── services/              # 后端服务层
+│   │   ├── claude/            # Claude Agent 服务
+│   │   └── llm/               # LLM Provider 抽象层
+│   │       └── providers/     # 各 Provider 实现
+│   └── webview/               # 前端 (Vue 3)
 │       └── src/
-│           ├── components/    # UI components (chat, messages, tools)
-│           ├── pages/         # Pages (ChatPage, SettingsPage)
-│           ├── core/          # Core logic (Session, Connection)
-│           └── composables/   # Vue composables
-├── resources/                 # Static assets
-├── package.json
-└── esbuild.ts
+│           ├── components/    # UI 组件
+│           ├── pages/         # 页面
+│           ├── core/          # 核心逻辑
+│           └── composables/   # 组合式函数
+├── resources/                 # 静态资源
+└── package.json
 ```
 
-### Tech Stack | 技术栈
+**技术栈**：TypeScript + Vue 3 + Vite + esbuild + Claude Agent SDK
 
-- **Backend**: TypeScript + VSCode Extension API + esbuild
-- **Frontend**: Vue 3 + Vite + TailwindCSS
-- **Communication**: WebView message protocol (bidirectional async)
-- **AI SDK**: Claude Agent SDK + Custom HTTP Provider adapter
-
-## Development | 开发指南
-
-### Requirements | 环境要求
-
-- Node.js >= 18.0.0
-- pnpm >= 8.0
-- VSCode >= 1.98.0
-
-### Dev Mode | 开发模式
+### 开发指南
 
 ```bash
-pnpm dev    # Start HMR dev server (Vite + esbuild watch)
+pnpm dev                # 热更新开发
+pnpm build              # 构建全部
+pnpm build:extension    # 仅后端
+pnpm build:webview      # 仅前端
+pnpm package            # 打包 VSIX
 ```
 
-### Build Commands | 构建命令
+环境要求：Node.js >= 18、pnpm >= 8、VSCode >= 1.98
 
-```bash
-pnpm build              # Build all (frontend + backend)
-pnpm build:extension    # Build backend only
-pnpm build:webview      # Build frontend only
-pnpm package            # Package as VSIX
-pnpm test               # Run tests
-pnpm typecheck:all      # TypeScript type check
-```
+### 贡献指南
 
-## Contributing | 贡献指南
+1. Fork → 2. 创建分支 → 3. 提交 → 4. 推送 → 5. PR
 
-Issues and Pull Requests are welcome!
+### 鸣谢
 
-1. Fork this repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit changes: `git commit -m 'Add your feature'`
-4. Push: `git push origin feature/your-feature`
-5. Submit a Pull Request
+本项目基于 [Claudix](https://github.com/Haleclipse/Claudix) 开源项目二次开发。感谢原作者 [Haleclipse](https://github.com/Haleclipse) 的杰出工作和开源精神。
 
-## Acknowledgements | 鸣谢
+### 许可证
 
-This project is based on [Claudix](https://github.com/Haleclipse/Claudix) open source project.
-
-本项目基于 [Claudix](https://github.com/Haleclipse/Claudix) 开源项目二次开发。
-
-Thanks to [Haleclipse](https://github.com/Haleclipse) for the outstanding work and open-source spirit.
-
-感谢原作者 [Haleclipse](https://github.com/Haleclipse) 的杰出工作和开源精神。
-
-## License | 许可证
-
-[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) — Based on [Claudix](https://github.com/Haleclipse/Claudix) © Haleclipse
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) — 基于 [Claudix](https://github.com/Haleclipse/Claudix) © Haleclipse
 
 ---
 

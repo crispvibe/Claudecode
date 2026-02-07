@@ -30,6 +30,7 @@ import { HandlerContext } from './handlers/types';
 import { IWebViewService } from '../webViewService';
 import { ILLMProviderService } from '../llm/ILLMProvider';
 import type { LLMQueryHandle } from '../llm/ILLMProvider';
+import type { LLMMessage } from '../llm/types';
 
 // 消息类型导入
 import type {
@@ -543,7 +544,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
 
         // HTTP API Provider 模式（OpenAI/Anthropic/Gemini）
         this.logService.info(`[spawnClaude] 使用 ${providerType} HTTP API 模式`);
-        return this.spawnHTTPProvider(inputStream, model, cwd, maxThinkingTokens);
+        return this.spawnHTTPProvider(inputStream, model, cwd, maxThinkingTokens, permissionMode);
     }
 
     /**
@@ -554,7 +555,8 @@ export class ClaudeAgentService implements IClaudeAgentService {
         inputStream: AsyncStream<SDKUserMessage>,
         model: string | null,
         cwd: string,
-        maxThinkingTokens: number
+        maxThinkingTokens: number,
+        initialPermissionMode: string = 'default'
     ): Promise<Query> {
         const providerConfig = this.llmProviderService.getProviderConfig();
         const resolvedModel = model || providerConfig.defaultModel || '';
@@ -567,6 +569,7 @@ export class ClaudeAgentService implements IClaudeAgentService {
         const self = this;
         let currentHandle: LLMQueryHandle | null = null;
         let interrupted = false;
+        let currentPermissionMode = initialPermissionMode;
 
         // 监听输入流，收到用户消息时发起查询
         const outputStream = new AsyncStream<any>();
@@ -592,8 +595,18 @@ export class ClaudeAgentService implements IClaudeAgentService {
                     if (!textContent.trim()) continue;
 
                     try {
+                        // 根据权限模式注入系统提示词
+                        const messages: LLMMessage[] = [];
+                        if (currentPermissionMode === 'plan') {
+                            messages.push({
+                                role: 'system' as const,
+                                content: 'You are in PLAN mode. You must ONLY analyze, plan, and suggest. Do NOT write actual code, do NOT create files, do NOT execute commands. Only provide analysis, step-by-step plans, architecture suggestions, and explanations. If the user asks you to implement something, describe the plan instead of writing code.\n\n你当前处于规划模式。你只能分析、规划和建议。不要写代码，不要创建文件，不要执行命令。只提供分析、步骤计划和解释。'
+                            });
+                        }
+                        messages.push({ role: 'user' as const, content: textContent });
+
                         const handle = await self.llmProviderService.query({
-                            messages: [{ role: 'user', content: textContent }],
+                            messages,
                             model: resolvedModel,
                             maxThinkingTokens: maxThinkingTokens > 0 ? maxThinkingTokens : undefined,
                             stream: true,
@@ -646,8 +659,9 @@ export class ClaudeAgentService implements IClaudeAgentService {
             async setMaxThinkingTokens(tokens: number) {
                 maxThinkingTokens = tokens;
             },
-            async setPermissionMode(_mode: any) {
-                // HTTP 模式下不支持权限模式
+            async setPermissionMode(mode: any) {
+                currentPermissionMode = mode;
+                self.logService.info(`[HTTPProvider] setPermissionMode: ${mode}`);
             },
         };
 

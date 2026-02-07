@@ -16,6 +16,7 @@
         <div class="form-group">
           <label class="form-label">Provider 类型</label>
           <select class="form-select" v-model="provider" @change="handleProviderChange">
+            <option value="claude-code">Claude Code SDK（原生）</option>
             <option value="openai">OpenAI 兼容</option>
             <option value="anthropic">Anthropic API</option>
             <option value="gemini">Google Gemini</option>
@@ -23,8 +24,15 @@
         </div>
       </section>
 
-      <!-- API 配置 -->
-      <section class="settings-section">
+      <!-- Claude Code SDK 提示 -->
+      <section v-if="provider === 'claude-code'" class="settings-section">
+        <div class="form-hint" style="padding: 8px 0;">
+          使用本地 Claude CLI 二进制文件，无需配置 API Key。支持完整工具链、权限模式 (Agent/Normal/Plan) 和会话恢复。
+        </div>
+      </section>
+
+      <!-- API 配置（仅 HTTP Provider） -->
+      <section v-if="provider !== 'claude-code'" class="settings-section">
         <h3 class="section-title">API 配置</h3>
 
         <div class="form-group">

@@ -1,7 +1,7 @@
 <template>
   <div class="thinking-block">
     <div class="thinking-header" @click="toggleExpanded">
-      <span class="thinking-label">Thinking...</span>
+      <span class="thinking-label">{{ isThinking ? 'Thinking...' : 'Thought' }}</span>
       <span class="codicon" :class="expanded ? 'codicon-chevron-up' : 'codicon-chevron-down'" />
     </div>
     <div v-if="expanded" class="thinking-content">
@@ -11,38 +11,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import type { ThinkingBlock as ThinkingBlockType } from '../../../models/ContentBlock';
 
 interface Props {
   block: ThinkingBlockType;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const expanded = ref(true);
-let autoCollapseTimer: ReturnType<typeof setTimeout> | null = null;
+const isThinking = ref(true);
+let manualToggled = false;
+let stableTimer: ReturnType<typeof setTimeout> | null = null;
 
 function toggleExpanded() {
   expanded.value = !expanded.value;
-  // 手动展开时清除自动收起计时器
-  if (autoCollapseTimer) {
-    clearTimeout(autoCollapseTimer);
-    autoCollapseTimer = null;
+  manualToggled = true;
+  // 手动操作后不再自动收起
+  if (stableTimer) {
+    clearTimeout(stableTimer);
+    stableTimer = null;
   }
 }
 
-// 挂载时默认展开，3秒后自动收起
-onMounted(() => {
-  autoCollapseTimer = setTimeout(() => {
-    expanded.value = false;
-    autoCollapseTimer = null;
-  }, 3000);
-});
+// 监听思考文本变化，文本停止更新 600ms 后判定思考完成并自动收起
+watch(
+  () => props.block.thinking,
+  () => {
+    // 文本还在变化，说明还在思考
+    if (stableTimer) {
+      clearTimeout(stableTimer);
+    }
 
-onUnmounted(() => {
-  if (autoCollapseTimer) {
-    clearTimeout(autoCollapseTimer);
+    // 用户已手动操作过，不再自动收起
+    if (manualToggled) return;
+
+    stableTimer = setTimeout(() => {
+      stableTimer = null;
+      isThinking.value = false;
+      if (!manualToggled) {
+        expanded.value = false;
+      }
+    }, 600);
+  }
+);
+
+onBeforeUnmount(() => {
+  if (stableTimer) {
+    clearTimeout(stableTimer);
+    stableTimer = null;
   }
 });
 </script>

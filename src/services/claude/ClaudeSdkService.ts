@@ -108,8 +108,8 @@ export class ClaudeSdkService implements IClaudeSdkService {
         this.logService.info(`  - resume: ${resume}`);
         this.logService.info(`  - maxThinkingTokens: ${maxThinkingTokens ?? 'undefined'}`);
 
-        // 参数转换
-        const modelParam = model === null ? "default" : model;
+        // 参数转换：直接使用传入的自定义模型 ID，不回退到 "default"（SDK 会将 "default" 解析为 claude-sonnet-4-5）
+        const modelParam = model ?? "default";
         const permissionModeParam = permissionMode as PermissionMode;
         const cwdParam = cwd;
 

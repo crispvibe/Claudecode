@@ -278,16 +278,30 @@ export class ClaudeAgentService implements IClaudeAgentService {
         try {
             for await (const message of this.fromClientStream) {
                 switch (message.type) {
-                    case "launch_claude":
+                    case "launch_claude": {
+                        // 模型优先级：消息传入 > 配置已保存 > 第一个自定义模型
+                        let resolvedModel = message.model || null;
+                        if (!resolvedModel || resolvedModel === 'default') {
+                            const savedModel = this.configService.getValue<string>('claudix.selectedModel');
+                            if (savedModel && savedModel !== 'default') {
+                                resolvedModel = savedModel;
+                            } else {
+                                const customModels = this.llmProviderService.getAvailableModels();
+                                if (customModels.length > 0) {
+                                    resolvedModel = customModels[0].id;
+                                }
+                            }
+                        }
                         await this.launchClaude(
                             message.channelId,
                             message.resume || null,
                             message.cwd || this.getCwd(),
-                            message.model || null,
+                            resolvedModel,
                             message.permissionMode || "default",
                             message.thinkingLevel || null
                         );
                         break;
+                    }
 
                     case "close_channel":
                         this.closeChannel(message.channelId, false);
@@ -377,14 +391,13 @@ export class ClaudeAgentService implements IClaudeAgentService {
                 inputStream,
                 resume,
                 async (toolName, input, options) => {
-                    // 工具权限回调：通过 RPC 请求 WebView 确认
-                    this.logService.info(`🔧 工具权限请求: ${toolName}`);
-                    return this.requestToolPermission(
-                        channelId,
-                        toolName,
-                        input,
-                        options.suggestions || []
-                    );
+                    // 自动允许所有工具执行，不弹窗询问用户
+                    this.logService.info(`🔧 自动允许工具: ${toolName}`);
+                    return {
+                        behavior: 'allow' as const,
+                        updatedInput: input,
+                        updatedPermissions: options.suggestions || []
+                    };
                 },
                 model,
                 cwd,

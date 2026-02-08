@@ -387,17 +387,29 @@ export class Session {
     } catch (error) {
       this.error(error instanceof Error ? error.message : String(error));
     } finally {
+      // 流结束时做最终刷新，确保所有待处理消息都已渲染
+      this.flushPendingMessages();
       // 流结束（正常/中断/错误）都必须重置 busy 状态
       this.busy(false);
       this.claudeChannelId(undefined);
     }
   }
 
-  private processIncomingMessage(event: any): void {
-    // 🔥 使用完整的消息处理流程
+  // 流式消息批量更新：多个事件合并到同一帧渲染，避免每个 chunk 都触发完整 Vue 重渲染
+  private _pendingMessages: Message[] | null = null;
+  private _flushScheduled = false;
 
-    // 1. 获取当前消息数组（转为可变数组）
-    const currentMessages = [...this.messages()] as Message[];
+  private flushPendingMessages(): void {
+    this._flushScheduled = false;
+    if (this._pendingMessages) {
+      this.messages(this._pendingMessages);
+      this._pendingMessages = null;
+    }
+  }
+
+  private processIncomingMessage(event: any): void {
+    // 1. 复用待处理数组，避免每次事件都拷贝整个消息数组
+    const currentMessages = this._pendingMessages ?? [...this.messages()] as Message[];
 
     // 2. 处理特殊消息（TodoWrite, usage 等）
     this.processMessage(event);
@@ -407,14 +419,7 @@ export class Session {
     //    - 将原始事件转换为 Message 并添加到数组
     processAndAttachMessage(currentMessages, event);
 
-    // 4. 合并连续 Read 消息为 ReadCoalesced（已禁用，保留作为参考）
-    // const merged = mergeConsecutiveReadMessages(currentMessages);
-
-    // 5. 更新 messages signal
-    // this.messages(merged);
-    this.messages(currentMessages);
-
-    // 6. 更新其他状态
+    // 4. 更新其他状态
     if (event?.type === 'system') {
       this.sessionId(event.session_id);
       if (event.subtype === 'init') {
@@ -422,6 +427,21 @@ export class Session {
       }
     } else if (event?.type === 'result') {
       this.busy(false);
+    }
+
+    // 5. 批量更新 messages signal：
+    //    重要事件（system/result）立即刷新，流式文本事件合并到下一帧
+    const isTerminal = event?.type === 'system' || event?.type === 'result';
+    if (isTerminal) {
+      this._pendingMessages = null;
+      this._flushScheduled = false;
+      this.messages(currentMessages);
+    } else {
+      this._pendingMessages = currentMessages;
+      if (!this._flushScheduled) {
+        this._flushScheduled = true;
+        requestAnimationFrame(() => this.flushPendingMessages());
+      }
     }
   }
 

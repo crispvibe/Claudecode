@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import type { TextBlock as TextBlockType } from '../../../models/ContentBlock';
 import type { ToolContext } from '../../../types/tool';
 import { marked } from 'marked';
@@ -33,11 +33,46 @@ marked.setOptions({
   breaks: true,
 });
 
-// 渲染 Markdown
-const renderedMarkdown = computed(() => {
-  const rawHtml = marked.parse(props.block.text) as string;
-  // TODO: 使用 DOMPurify.sanitize(rawHtml) 进行安全清理
-  return rawHtml;
+// 节流 Markdown 渲染：流式输出时最多每 80ms 解析一次，避免 O(n²) 重复解析
+const renderedMarkdown = ref('');
+let throttleTimer: ReturnType<typeof setTimeout> | null = null;
+let lastParsedText = '';
+
+function parseMarkdown(text: string) {
+  if (text === lastParsedText) return;
+  lastParsedText = text;
+  renderedMarkdown.value = marked.parse(text) as string;
+}
+
+watch(
+  () => props.block.text,
+  (newText) => {
+    // 文本没变化则跳过
+    if (newText === lastParsedText) return;
+
+    // 已有定时器在等待，说明正在流式输出中，跳过本次，等定时器触发
+    if (throttleTimer) return;
+
+    // 立即解析一次（首次或间隔已过）
+    parseMarkdown(newText);
+
+    // 设置节流窗口：80ms 内的后续变化只在窗口结束时解析一次
+    throttleTimer = setTimeout(() => {
+      throttleTimer = null;
+      // 窗口结束时，如果文本又有新变化，补一次解析
+      if (props.block.text !== lastParsedText) {
+        parseMarkdown(props.block.text);
+      }
+    }, 80);
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  if (throttleTimer) {
+    clearTimeout(throttleTimer);
+    throttleTimer = null;
+  }
 });
 </script>
 

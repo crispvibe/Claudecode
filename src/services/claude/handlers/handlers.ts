@@ -65,15 +65,18 @@ export async function handleInit(
     _request: InitRequest,
     context: HandlerContext
 ): Promise<InitResponse> {
-    const { configService, workspaceService, logService, agentService } = context;
+    const { configService, workspaceService, logService, agentService, llmProviderService } = context;
 
     logService.info('[handleInit] 处理初始化请求');
 
     // TODO: 从 AuthManager 获取认证状态
     // const authStatus = null;
 
-    // 获取模型设置
-    const modelSetting = configService.getValue<string>('claudix.selectedModel') || 'default';
+    // 获取模型设置：优先使用已保存的选择，否则使用第一个自定义模型
+    const savedModel = configService.getValue<string>('claudix.selectedModel');
+    const customModels = llmProviderService?.getAvailableModels() || [];
+    const firstCustomModelId = customModels.length > 0 ? customModels[0].id : '';
+    const modelSetting = savedModel && savedModel !== 'default' ? savedModel : firstCustomModelId;
 
     // 获取默认工作目录
     const defaultCwd = workspaceService.getDefaultWorkspaceFolder()?.uri.fsPath || process.cwd();
@@ -118,17 +121,18 @@ export async function handleGetClaudeState(
         config = { slashCommands: [], models: [], accountInfo: null };
     }
 
-    // 注入自定义模型（从设置中添加的模型合并到 SDK 返回的模型列表）
+    // 只使用自定义模型，隐藏 SDK 默认模型（default, opus, haiku, claude-sonnet-4-5-20250929）
     const customModels = llmProviderService?.getAvailableModels() || [];
     if (customModels.length > 0) {
-        const existingModels = config.models || [];
         const customModelEntries = customModels.map(m => ({
             value: m.id,
             label: m.label,
             description: m.description,
             provider: 'claude-code',
         }));
-        config.models = [...existingModels, ...customModelEntries];
+        config.models = customModelEntries;
+    } else {
+        config.models = [];
     }
 
     // 注入 Provider 信息

@@ -50,6 +50,10 @@
             <div v-if="isBusy" class="spinnerRow">
               <Spinner :size="16" :permission-mode="permissionMode" />
             </div>
+            <div v-else-if="messages.length > 0 && hasCompleted" class="completedRow">
+              <span class="codicon codicon-check completed-icon" />
+              <span class="completed-text">对话完成</span>
+            </div>
             <div ref="endEl" />
           </template>
         </div>
@@ -161,6 +165,19 @@
   const title = computed(() => session.value?.summary.value || '新对话');
   const messages = computed<any[]>(() => session.value?.messages.value ?? []);
   const isBusy = computed(() => session.value?.busy.value ?? false);
+
+  // 追踪对话是否已完成：从 busy → 非 busy 转变时标记为完成
+  const hasCompleted = ref(false);
+  watch(isBusy, (busy, wasBusy) => {
+    if (wasBusy && !busy && messages.value.length > 0) {
+      hasCompleted.value = true;
+    }
+  });
+  // 新对话或新消息发出时重置
+  watch(
+    () => session.value,
+    () => { hasCompleted.value = false; }
+  );
   const permissionMode = computed(
     () => session.value?.permissionMode.value ?? 'acceptEdits'
   );
@@ -308,6 +325,8 @@
     const s = session.value;
     const trimmed = (content || '').trim();
     if (!s || (!trimmed && attachments.value.length === 0) || isBusy.value) return;
+
+    hasCompleted.value = false;
 
     try {
       // 传递附件给 send 方法
@@ -626,6 +645,36 @@
   /* 输入区域容器 */
   .inputContainer {
     padding: 8px 12px 12px;
+  }
+
+  .spinnerRow {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  .completedRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 0 4px;
+    opacity: 0;
+    animation: fadeInCompleted 0.3s ease forwards;
+  }
+
+  @keyframes fadeInCompleted {
+    to { opacity: 1; }
+  }
+
+  .completed-icon {
+    font-size: 14px;
+    color: var(--vscode-testing-iconPassed, #73c991);
+  }
+
+  .completed-text {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
   }
 
   /* 底部对话框区域钉在底部 */
